@@ -21,19 +21,19 @@ Currently no consideration of number value wrap.
 \ CREATE GAME 3 , 6 , 5 , 4 ,
 
 \ 3x3 game
-\ 3 CONSTANT #ROW 3 CONSTANT #COL
+ 3 CONSTANT #ROW 3 CONSTANT #COL
 \ saddle
-\ CREATE GAME 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ,
+ CREATE GAME 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ,
 \ no saddle
 \ CREATE GAME 1 , 2 , 7 , 6 , 5 , 4 , 3 , 8 , 9 ,
 
 \ 4x4 game to test integer runover. ATM works, but leaves numbers on the stack for last 3 pivots
-4 CONSTANT #ROW 4 CONSTANT #COL
-CREATE GAME
-36 , 12 , 29 , 17 ,
-0 , 24 , 29 , 17 ,
-45 , 21 , 38 , 14 ,
-9 , 33 , 2 , 26 ,
+\ 4 CONSTANT #ROW 4 CONSTANT #COL
+\ CREATE GAME
+\ 36 , 12 , 29 , 17 ,
+\ 0 , 24 , 29 , 17 ,
+\ 45 , 21 , 38 , 14 ,
+\ 9 , 33 , 2 , 26 ,
 
 \ needed for simple 2x2 solution method, or at least for checking for saddle points
 CREATE ROWMINS #ROW ALLOT
@@ -217,7 +217,7 @@ CREATE P2-STRAT #COL CELLS ALLOT
 : ISP2 DUP COLMAXS + @ ROT <> IF 0 ELSE 1 THEN SWAP P2-STRAT + ! ;
 : SP1 ROW-MINMAX #ROW 0 DO DUP I CELLS ISP1 LOOP DROP ;
 : SP2 COL-MAXMIN #COL 0 DO DUP I CELLS ISP2 LOOP DROP ;
-: SADDLE V ! SP1 SP2 ;
+: SADDLE D ! 1 V ! SP1 SP2 ;
 
 \ Strategies from solved schema
 : ISM1F     P1F@ DUP 0< IF DROP  ELSE 0       SWAP P1S! THEN ;
