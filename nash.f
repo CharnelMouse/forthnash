@@ -16,20 +16,20 @@ Currently no consideration of number value wrap.
 \ 2x2 games
 \ 2 CONSTANT #ROW 2 CONSTANT #COL
 \ saddle
-\ CREATE VALUES 1 , 2 , 3 , 4 ,
+\ CREATE GAME 1 , 2 , 3 , 4 ,
 \ no saddle
-\ CREATE VALUES 3 , 6 , 5 , 4 ,
+\ CREATE GAME 3 , 6 , 5 , 4 ,
 
 \ 3x3 game
 \ 3 CONSTANT #ROW 3 CONSTANT #COL
 \ saddle
-\ CREATE VALUES 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ,
+\ CREATE GAME 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ,
 \ no saddle
-\ CREATE VALUES 1 , 2 , 7 , 6 , 5 , 4 , 3 , 8 , 9 ,
+\ CREATE GAME 1 , 2 , 7 , 6 , 5 , 4 , 3 , 8 , 9 ,
 
 \ 4x4 game to test integer runover. ATM works, but leaves numbers on the stack for last 3 pivots
 4 CONSTANT #ROW 4 CONSTANT #COL
-CREATE VALUES
+CREATE GAME
 36 , 12 , 29 , 17 ,
 0 , 24 , 29 , 17 ,
 45 , 21 , 38 , 14 ,
@@ -39,7 +39,7 @@ CREATE VALUES
 CREATE ROWMINS #ROW ALLOT
 CREATE COLMAXS #COL ALLOT
 
-: FETCH CELLS VALUES + @ ;
+: FETCH CELLS GAME + @ ;
 : TIND SWAP #COL * + ;
 : TABLE-FETCH SWAP #COL * + FETCH ;
 
@@ -48,7 +48,7 @@ CREATE COLMAXS #COL ALLOT
 : AFILL 0 DO DUP , LOOP DROP ; \ ALLOT + FILL
 : SEQ   0 DO I   , LOOP ;
 CREATE A #ROW #COL * CELLS ALLOT
-VALUES A #ROW #COL * CELLS MOVE
+GAME A #ROW #COL * CELLS MOVE
 CREATE B 1 #ROW AFILL
 CREATE C -1 #COL AFILL
 VARIABLE V \ Might not need, used strat values will add to this for solved schema
@@ -79,7 +79,7 @@ CREATE P2-BASE -1 #ROW AFILL
 : .RPARRAY ( +n addr n ) 0 DO 2DUP I CELLS + @ .RP LOOP 2DROP ;
 : .MATRIX-ROW ( addr width row -- ) OVER * CELLS ROT + SWAP .ARRAY ;
 : .MATRIX ( addr width height -- ) 0 DO CR 2DUP I .MATRIX-ROW LOOP 2DROP ;
-: .VALUES VALUES #COL #ROW .MATRIX ;
+: .GAME GAME #COL #ROW .MATRIX ;
 : .ROWMINS ROWMINS #ROW .ARRAY ;
 : .COLMAXS COLMAXS #COL .ARRAY ;
 : .| [CHAR] | EMIT SPACE ;
