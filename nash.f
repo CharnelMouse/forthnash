@@ -21,19 +21,19 @@ Currently no consideration of number value wrap.
 \ CREATE GAME 3 , 6 , 5 , 4 ,
 
 \ 3x3 game
- 3 CONSTANT #ROW 3 CONSTANT #COL
+\ 3 CONSTANT #ROW 3 CONSTANT #COL
 \ saddle
- CREATE GAME 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ,
+\ CREATE GAME 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ,
 \ no saddle
 \ CREATE GAME 1 , 2 , 7 , 6 , 5 , 4 , 3 , 8 , 9 ,
 
 \ 4x4 game to test integer runover. ATM works, but leaves numbers on the stack for last 3 pivots
-\ 4 CONSTANT #ROW 4 CONSTANT #COL
-\ CREATE GAME
-\ 36 , 12 , 29 , 17 ,
-\ 0 , 24 , 29 , 17 ,
-\ 45 , 21 , 38 , 14 ,
-\ 9 , 33 , 2 , 26 ,
+4 CONSTANT #ROW 4 CONSTANT #COL
+CREATE GAME
+36 , 12 , 29 , 17 ,
+0 , 24 , 29 , 17 ,
+45 , 21 , 38 , 14 ,
+9 , 33 , 2 , 26 ,
 
 \ needed for simple 2x2 solution method, or at least for checking for saddle points
 CREATE ROWMINS #ROW ALLOT
@@ -175,8 +175,6 @@ CREATE P2-STRAT #COL CELLS ALLOT
 : ROLL-ROW DUP ROW-VALS DUP 0< IF 3DROP ELSE LOWER-RAT THEN ;
 : ROW INIT-ROW #ROW 0 DO I ROLL-ROW LOOP ;
 
-: GO-V V @ PIVOT-VAL @ * PIVOT-ROWVAL @ PIVOT-COLVAL @ * - D @ / V ! ;
-
 : GO-B-EL DUP DUP B@ PIVOT-VAL @ * SWAP PIVOT-COL @ TIND A@ PIVOT-ROWVAL @ * - D @ / SWAP B! ;
 : GO-B-ROW DUP PIVOT-ROW @ <> IF GO-B-EL ELSE DROP THEN ;
 : GO-B #ROW 0 DO I GO-B-ROW LOOP ;
@@ -205,7 +203,7 @@ CREATE P2-STRAT #COL CELLS ALLOT
 : SWAP-P1 PIVOT-ROW @ CELLS P1-FREE + PIVOT-COL @ CELLS P1-BASE + MEM-SWAP ;
 : SWAP-P2 PIVOT-ROW @ CELLS P2-BASE + PIVOT-COL @ CELLS P2-FREE + MEM-SWAP ;
 
-: GO GO-V GO-B GO-C NON-ORTHOG NEG-COL SWAP-SELF SWAP-P1 SWAP-P2 ;
+: GO GO-B GO-C NON-ORTHOG NEG-COL SWAP-SELF SWAP-P1 SWAP-P2 ;
 
 : PIVOT COL ROW GO ;
 : SIMPLEX BEGIN UNSOLVED? WHILE PIVOT REPEAT ;
@@ -220,17 +218,20 @@ CREATE P2-STRAT #COL CELLS ALLOT
 : SADDLE D ! 1 V ! SP1 SP2 ;
 
 \ Strategies from solved schema
-: ISM1F     P1F@ DUP 0< IF DROP  ELSE 0       SWAP P1S! THEN ;
-: ISM2F     P2F@ DUP 0< IF DROP  ELSE 0       SWAP P2S! THEN ;
-: ISM1B DUP P1B@ DUP 0< IF 2DROP ELSE SWAP C@ SWAP P1S! THEN ;
-: ISM2B DUP P2B@ DUP 0< IF 2DROP ELSE SWAP B@ SWAP P2S! THEN ;
-: SM1F #ROW 0 DO I ISM1F LOOP ;
-: SM1B #COL 0 DO I ISM1B LOOP ;
-: SM2F #COL 0 DO I ISM2F LOOP ;
-: SM2B #ROW 0 DO I ISM2B LOOP ;
-: SM1 SM1F SM1B ;
-: SM2 SM2F SM2B ;
-: SM SM1 SM2 ;
+\ We set V here instead of on each pivot,
+\ since at solution time it's equal to either
+\ player's solution sum
+: ISM1F       P1F@ DUP 0< IF DROP  ELSE 0                     SWAP P1S! THEN ;
+: ISM2F       P2F@ DUP 0< IF DROP  ELSE 0                     SWAP P2S! THEN ;
+: ISM1B+V DUP P1B@ DUP 0< IF 2DROP ELSE SWAP C@ DUP V @ + V ! SWAP P1S! THEN ;
+: ISM2B   DUP P2B@ DUP 0< IF 2DROP ELSE SWAP B@               SWAP P2S! THEN ;
+: SM1F   #ROW 0 DO I ISM1F   LOOP ;
+: SM1B+V #COL 0 DO I ISM1B+V LOOP ;
+: SM2F   #COL 0 DO I ISM2F   LOOP ;
+: SM2B   #ROW 0 DO I ISM2B   LOOP ;
+: SM1+V SM1F SM1B+V ;
+: SM2   SM2F SM2B ;
+: SM 0 V ! SM1+V SM2 ;
 
 : NASH FIND-EXTREMES SADDLE? IF SADDLE ." Saddle" ELSE DROP SIMPLEX SM ." Mixed" THEN ;
 
