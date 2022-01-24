@@ -1,14 +1,9 @@
 {
 Simple Forth script for finding a Nash equilibrium for a two-player zero-sum game.
-We begin with assuming a 2x2 game, with integer values.
-
-Simple solution (implemented):
-- Check for a saddle point.
-- If there isn't one, a row/col's weight is the absolute difference between
-  the elements in the other row/col.
-
-Currently implementing the simplex method, with the simple tableau format from Williams.
-Currently no consideration of number value wrap.
+Checks for saddle points first.
+If none, uses simplex method, with the simple tableau format from Williams.
+Currently no consideration of integer over/underflow.
+To implement: reading games from file, allowing continuation if multiple equilibria.
 }
 
 \ need to add way to use own payoff matrix instead of a hard-coded one
@@ -27,7 +22,7 @@ Currently no consideration of number value wrap.
 \ no saddle
 \ CREATE GAME 1 , 2 , 7 , 6 , 5 , 4 , 3 , 8 , 9 ,
 
-\ 4x4 game to test integer runover. ATM works, but leaves numbers on the stack for last 3 pivots
+\ 4x4 game
 4 CONSTANT #ROW 4 CONSTANT #COL
 CREATE GAME
 36 , 12 , 29 , 17 ,
