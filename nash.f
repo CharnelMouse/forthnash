@@ -208,18 +208,18 @@ CREATE P2-STRAT #COL CELLS ALLOT
 \ Strategies from saddle point solutions
 : ISP1 DUP ROWMINS + @ ROT <> IF 0 ELSE 1 THEN SWAP P1-STRAT + ! ;
 : ISP2 DUP COLMAXS + @ ROT <> IF 0 ELSE 1 THEN SWAP P2-STRAT + ! ;
-: SP1 ROW-MINMAX #ROW 0 DO DUP I CELLS ISP1 LOOP DROP ;
-: SP2 COL-MAXMIN #COL 0 DO DUP I CELLS ISP2 LOOP DROP ;
-: SADDLE D ! 1 V ! SP1 SP2 ;
+: SP1 #ROW 0 DO DUP I CELLS ISP1 LOOP DROP ;
+: SP2 #COL 0 DO DUP I CELLS ISP2 LOOP DROP ;
+: SADDLE ( saddle-value -- ) DUP D ! 1 V ! DUP SP1 SP2 ;
 
 \ Strategies from solved schema
 \ We set V here instead of on each pivot,
 \ since at solution time it's equal to either
 \ player's solution sum
-: ISM1F       P1F@ DUP 0< IF DROP  ELSE 0                     SWAP P1S! THEN ;
-: ISM2F       P2F@ DUP 0< IF DROP  ELSE 0                     SWAP P2S! THEN ;
-: ISM1B+V DUP P1B@ DUP 0< IF 2DROP ELSE SWAP C@ DUP V @ + V ! SWAP P1S! THEN ;
-: ISM2B   DUP P2B@ DUP 0< IF 2DROP ELSE SWAP B@               SWAP P2S! THEN ;
+: ISM1F       P1F@ DUP 0< IF DROP  ELSE 0                SWAP P1S! THEN ;
+: ISM2F       P2F@ DUP 0< IF DROP  ELSE 0                SWAP P2S! THEN ;
+: ISM1B+V DUP P1B@ DUP 0< IF 2DROP ELSE SWAP C@ DUP V +! SWAP P1S! THEN ;
+: ISM2B   DUP P2B@ DUP 0< IF 2DROP ELSE SWAP B@          SWAP P2S! THEN ;
 : SM1F   #ROW 0 DO I ISM1F   LOOP ;
 : SM1B+V #COL 0 DO I ISM1B+V LOOP ;
 : SM2F   #COL 0 DO I ISM2F   LOOP ;
