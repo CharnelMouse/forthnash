@@ -48,15 +48,15 @@ min -**c**'**x** where **x** ⪰ **0**, **Ax** = **b**,
 
 where **x**, **A** etc. include slack variables, is
 
-|||||
-|:-:|:-:|:-:|:-:|
+||||
+|:-:|:-:|:-:|
 |  d  |-**c**'|  z  |
 |**0**| **A** |**b**|,
 
 where z is initially equal to zero, and d is initially equal to one. These elements track the following:
 
-|||||
-|:-:|:-:|:-:|:-:|
+||||
+|:-:|:-:|:-:|
 |scaling factor|full derivatives WRT objective function|objective function|
 |nothing|partial derviatives WRT constraints|constraint values|.
 
@@ -75,8 +75,8 @@ In step 2, we can alternatively divide through by t afterwards, keeping the scal
 
 Instead of the usual simplex tableau described above, we use the modified version of the Tucker tableau, described in later versions of The Compleat Strategyst by JD Williams (1966 onwards). This modified tableau is
 
-|||||
-|:-:|:-:|:-:|:-:|
+|||
+|:-:|:-:|
 | **A** |**b**|
 |-**c**'|**z**|,
 
