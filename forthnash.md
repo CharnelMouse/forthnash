@@ -78,7 +78,7 @@ Instead of the usual simplex tableau described above, we use the modified versio
 |||
 |:-:|:-:|
 | **A** |**b**|
-|-**c**'|**z**|,
+|-**c**'|  z  |,
 
 where **A** only shows the partial derivatives for the current free variables. Instead of setting the other elements in the pivot column to zero, they are now multiplied by -1, which effectively replaces the old base variable's column with the new one's. Instead of tracking the base variables by looking for which columns form a permuted identity matrix, we track it with additional markers around the outside, which change position when their row/column is used as the pivot. Player 1's strategies start on the rows, and player 2's strategies start on the columns. A player 1 strategy is currently a base variable, i.e. used, if its label is on the columns, and similarly for player 2.
 
