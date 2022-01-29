@@ -6,89 +6,109 @@ Currently no consideration of integer over/underflow.
 To implement: reading games from file, allowing continuation if multiple equilibria.
 }
 
+\ data structures
+
+: AFILL 0 DO DUP , LOOP DROP ;
+: SEQ   0 DO I   , LOOP ;
+: ARRAY     (     len ) CREATE CELLS ALLOT DOES> SWAP CELLS + ;
+: REP-ARRAY ( val len ) CREATE AFILL       DOES> SWAP CELLS + ;
+: SEQ-ARRAY (     len ) CREATE SEQ         DOES> SWAP CELLS + ;
+: TOP 0 ;
+
+: MATRIX ( nrow ncol -- )
+  CREATE DUP , * CELLS ALLOT
+  DOES> ( col row -- addr ) TUCK @ * 1+ ROT + CELLS + ;
+: TL 0 0 ;
+: & ( addr n -- addr ) OVER ! CELL + ;
+
+\ example games
 \ need to add way to use own payoff matrix instead of a hard-coded one
 
 \ 2x2 games
 \ 2 CONSTANT #ROW 2 CONSTANT #COL
 \ saddle
-\ CREATE GAME 1 , 2 , 3 , 4 ,
+\ #ROW #COL MATRIX GAME
+\ TL GAME
+\ 1 & 2 &
+\ 3 & 4 &
+\ DROP
 \ no saddle
-\ CREATE GAME 3 , 6 , 5 , 4 ,
+\ #ROW #COL MATRIX GAME
+\ TL GAME
+\ 3 & 6 &
+\ 5 & 4 &
+\ DROP
 
 \ 3x3 game
 \ 3 CONSTANT #ROW 3 CONSTANT #COL
 \ saddle
-\ CREATE GAME 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 ,
+\ #ROW #COL MATRIX GAME
+\ TL GAME
+\ 1 & 2 & 3 &
+\ 4 & 5 & 6 &
+\ 7 & 8 & 9 &
+\ DROP
 \ no saddle
-\ CREATE GAME 1 , 2 , 7 , 6 , 5 , 4 , 3 , 8 , 9 ,
+\ #ROW #COL MATRIX GAME
+\ TL GAME
+\ 1 & 2 & 7 &
+\ 6 & 5 & 4 &
+\ 3 & 8 & 9 &
+\ DROP
 
 \ 4x4 game
 4 CONSTANT #ROW 4 CONSTANT #COL
-CREATE GAME
-36 , 12 , 29 , 17 ,
-0 , 24 , 29 , 17 ,
-45 , 21 , 38 , 14 ,
-9 , 33 , 2 , 26 ,
+#ROW #COL MATRIX GAME
+TL GAME
+36 & 12 & 29 & 17 &
+ 0 & 24 & 29 & 17 &
+45 & 21 & 38 & 14 &
+ 9 & 33 &  2 & 26 &
+DROP
 
-\ needed for simple 2x2 solution method, or at least for checking for saddle points
-CREATE ROWMINS #ROW ALLOT
-CREATE COLMAXS #COL ALLOT
+\ needed for checking for saddle points
 
-: FETCH CELLS GAME + @ ;
-: TIND SWAP #COL * + ;
-: TABLE-FETCH SWAP #COL * + FETCH ;
+#ROW ARRAY ROWMINS
+#COL ARRAY COLMAXS
 
 \ Williams simplex variables
 \ later will need to ensure elements are positive integers first
-: AFILL 0 DO DUP , LOOP DROP ; \ ALLOT + FILL
-: SEQ   0 DO I   , LOOP ;
-CREATE A #ROW #COL * CELLS ALLOT
-GAME A #ROW #COL * CELLS MOVE
-CREATE B 1 #ROW AFILL
-CREATE C -1 #COL AFILL
+
+#ROW #COL MATRIX A
+TL GAME TL A #ROW #COL * CELLS MOVE
+ 1    #ROW REP-ARRAY B
+-1    #COL REP-ARRAY C
+-1 CONSTANT SLACK
+SLACK #COL REP-ARRAY P1-BASE
+SLACK #ROW REP-ARRAY P2-BASE
+#ROW SEQ-ARRAY P1-FREE
+#COL SEQ-ARRAY P2-FREE
 VARIABLE V \ Might not need, used strat values will add to this for solved schema
 CREATE D 1 ,
-\ [1, #ROW] for occupied, 0 for empty
-CREATE P1-FREE #ROW SEQ
-CREATE P1-BASE -1 #COL AFILL
-\ [1, #COL] for occupied, 0 for empty
-CREATE P2-FREE #COL SEQ
-CREATE P2-BASE -1 #ROW AFILL
-
-\ getters/setters
-: A@ CELLS A + @ ;
-: A! CELLS A + ! ;
-: B@ CELLS B + @ ;
-: B! CELLS B + ! ;
-: C@ CELLS C + @ ;
-: C! CELLS C + ! ;
-: P1F@ CELLS P1-FREE + @ ;
-: P2F@ CELLS P2-FREE + @ ;
-: P1B@ CELLS P1-BASE + @ ;
-: P2B@ CELLS P2-BASE + @ ;
 
 \ for manual testing
 : .RP DUP 0< IF DROP 1+ SPACES ELSE SWAP .R SPACE THEN ;
-: .ARRAY 0 DO DUP I CELLS + @ . LOOP DROP ;
-: .RARRAY 0 DO 2DUP I CELLS + @ SWAP .R SPACE LOOP 2DROP ;
-: .RPARRAY ( +n addr n ) 0 DO 2DUP I CELLS + @ .RP LOOP 2DROP ;
-: .MATRIX-ROW ( addr width row -- ) OVER * CELLS ROT + SWAP .ARRAY ;
-: .MATRIX ( addr width height -- ) 0 DO CR 2DUP I .MATRIX-ROW LOOP 2DROP ;
-: .GAME GAME #COL #ROW .MATRIX ;
-: .ROWMINS ROWMINS #ROW .ARRAY ;
-: .COLMAXS COLMAXS #COL .ARRAY ;
+: ?RP @ .RP ;
 : .| [CHAR] | EMIT SPACE ;
-: .P2-FREES ( +n ) P2-FREE #COL .RPARRAY ;
-: .P1-FREE ( +n r ) P1F@ .RP ;
-: .P2-BASE ( +n r ) P2B@ .RP ;
-: .MAIN-ROW ( +n r ) 2DUP #COL * CELLS A + #COL .RARRAY .| CELLS B + @ SWAP .R ;
-: .MAIN-ROWS ( +n ) #ROW 0 DO DUP I 2DUP .P1-FREE 2DUP .MAIN-ROW SPACE .P2-BASE CR LOOP DROP ;
-: .C-ROW C #COL .RARRAY ;
+
+: .ARRAY   (    addr n )        0 DO    DUP  I CELLS + ?                     LOOP DROP  ;
+: .RARRAY  ( +n addr n )        0 DO    2DUP I CELLS + @ SWAP .R SPACE       LOOP 2DROP ;
+: .RPARRAY ( +n addr n )        0 DO    2DUP I CELLS + ?RP                   LOOP 2DROP ;
+: .MATRIX-ROW ( addr width row -- ) OVER * CELLS ROT + SWAP .ARRAY ;
+: .MATRIX ( addr width height ) 0 DO CR 2DUP I .MATRIX-ROW                   LOOP 2DROP ;
+: .MAIN-ROW ( +n r ) 2DUP 0 SWAP A #COL .RARRAY .| 2DUP B @ SWAP .R SPACE P2-BASE ?RP ;
+: .MAIN-ROWS ( +n )        #ROW 0 DO    DUP  I 2DUP P1-FREE ?RP .MAIN-ROW CR LOOP DROP  ;
+
+: .GAME TL GAME #COL #ROW .MATRIX ;
+: .ROWMINS TOP ROWMINS #ROW .ARRAY ;
+: .COLMAXS TOP COLMAXS #COL .ARRAY ;
+: .P2-FREES ( +n ) TOP P2-FREE #COL .RPARRAY ;
+: .C-ROW TOP C #COL .RARRAY ;
 : .V V @ SWAP .R ;
 : .-N 0 DO [CHAR] - EMIT LOOP ;
 : .LINE ( +n ) 1+ DUP #COL * .-N [CHAR] + EMIT .-N ;
-: .P1-BASES P1-BASE #COL .RPARRAY ;
-: .D D @ . ;
+: .P1-BASES TOP P1-BASE #COL .RPARRAY ;
+: .D D ? ;
 : .SCHEMA ( +n )
    CR DUP 1+ SPACES DUP .P2-FREES
    CR DUP .MAIN-ROWS
@@ -99,37 +119,31 @@ CREATE P2-BASE -1 #ROW AFILL
 
 \ rowmin and colmax calculation
 \ calculate rowmins and colmaxes
-: SET-ROWMIN CELLS ROWMINS + ! ;
-: SET-COLMAX CELLS COLMAXS + ! ;
-: GET-ROWMIN CELLS ROWMINS + @ ;
-: GET-COLMAX CELLS COLMAXS + @ ;
-: UPDATE-COLMAX TUCK GET-COLMAX MAX SWAP SET-COLMAX ;
+: UPDATE-COLMAX TUCK COLMAXS @ MAX SWAP COLMAXS ! ;
 \ top row elements set initial colmaxs, other-row elements roll them
-: TOP-LEFT-VALUE    (         -- el ) 0    FETCH        DUP 0   SET-COLMAX ;
-: TOP-ROW-VALUE     (     col -- el ) DUP  FETCH        DUP ROT SET-COLMAX ;
-: NONTOP-LEFT-VALUE ( row     -- el ) 0    TABLE-FETCH  DUP 0   UPDATE-COLMAX ;
-: NONTOP-ROW-VALUE  ( row col -- el ) TUCK TABLE-FETCH  DUP ROT UPDATE-COLMAX ;
+: TOP-LEFT-VALUE    (         -- el ) TL        GAME @ DUP 0   COLMAXS ! ;
+: TOP-ROW-VALUE     (     col -- el ) DUP 0     GAME @ DUP ROT COLMAXS ! ;
+: NONTOP-LEFT-VALUE ( row     -- el ) 0 SWAP    GAME @ DUP 0   UPDATE-COLMAX ;
+: NONTOP-ROW-VALUE  ( row col -- el ) TUCK SWAP GAME @ DUP ROT UPDATE-COLMAX ;
 \ after each non-left element, roll the rowmin
 : TOP-NONLEFT-ROW    ( el     -- el ) #COL 1 DO     I TOP-ROW-VALUE        MIN      LOOP ;
 : NONTOP-NONLEFT-ROW ( el row -- el ) #COL 1 DO DUP I NONTOP-ROW-VALUE ROT MIN SWAP LOOP DROP ;
-\
-: TOP-ROW        TOP-LEFT-VALUE          TOP-NONLEFT-ROW      0    SET-ROWMIN ;
-: NONTOP-ROW DUP NONTOP-LEFT-VALUE  OVER NONTOP-NONLEFT-ROW   SWAP SET-ROWMIN ;
-\
+: TOP-ROW        TOP-LEFT-VALUE         TOP-NONLEFT-ROW    0    ROWMINS ! ;
+: NONTOP-ROW DUP NONTOP-LEFT-VALUE OVER NONTOP-NONLEFT-ROW SWAP ROWMINS ! ;
 : OTHER-ROWS #ROW 1 ?DO I NONTOP-ROW LOOP ;
 : FIND-EXTREMES TOP-ROW OTHER-ROWS ;
 
 \ printing mixed strategies (2x2 matrices only)
 : .. DUP 0< (D.) TYPE ; \ like ., but without the ending space
-: ROW-ADIFF DUP 0 TABLE-FETCH   SWAP 1 TABLE-FETCH  - ABS ;
-: COL-ADIFF 0 OVER TABLE-FETCH  1 ROT TABLE-FETCH   - ABS ;
+: ROW-ADIFF DUP 0  GAME @ SWAP 1 GAME @ - ABS ;
+: COL-ADIFF 0 OVER GAME @ 1 ROT  GAME @ - ABS ;
 : ..ROW-RATIO 1 ROW-ADIFF .. ." :" 0 ROW-ADIFF .. ;
 : ..COL-RATIO 1 COL-ADIFF .. ." :" 0 COL-ADIFF .. ;
 
 \ these could be stored at end of CALCULATE-EXTREMES instead,
 \ if I find another place to use them
-: ROW-MINMAX 0 GET-ROWMIN #ROW 1 ?DO I GET-ROWMIN MAX LOOP ;
-: COL-MAXMIN 0 GET-COLMAX #COL 1 ?DO I GET-COLMAX MIN LOOP ;
+: ROW-MINMAX TOP ROWMINS @ #ROW 1 ?DO I ROWMINS @ MAX LOOP ;
+: COL-MAXMIN TOP COLMAXS @ #COL 1 ?DO I COLMAXS @ MIN LOOP ;
 
 \ Simplex algorithm variables
 VARIABLE PIVOT-COL
@@ -137,32 +151,26 @@ VARIABLE PIVOT-COLVAL
 VARIABLE PIVOT-ROW
 VARIABLE PIVOT-ROWVAL
 VARIABLE PIVOT-VAL
+#ROW ARRAY P1-STRAT
+#COL ARRAY P2-STRAT
 
-CREATE P1-STRAT #ROW CELLS ALLOT
-CREATE P2-STRAT #COL CELLS ALLOT
-
-: P1S@ CELLS P1-STRAT + @ ;
-: P2S@ CELLS P2-STRAT + @ ;
-: P1S! CELLS P1-STRAT + ! ;
-: P2S! CELLS P2-STRAT + ! ;
-
-: .PC PIVOT-COL @ . ;
-: .PCV PIVOT-COLVAL @ . ;
-: .PR PIVOT-ROW @ . ;
-: .PRV PIVOT-ROWVAL @ . ;
-: .PV PIVOT-VAL @ . ;
+: .PC  PIVOT-COL    ? ;
+: .PCV PIVOT-COLVAL ? ;
+: .PR  PIVOT-ROW    ? ;
+: .PRV PIVOT-ROWVAL ? ;
+: .PV  PIVOT-VAL    ? ;
 
 \ Simplex algorithm
 \ Chooses col based on smallest value, rather than checking -rc/p values
 
-: UNSOLVED? FALSE #COL 0 DO DROP I C@ 0< IF TRUE LEAVE ELSE FALSE THEN LOOP ;
+: UNSOLVED? FALSE #COL 0 DO DROP I C @ 0< IF TRUE LEAVE ELSE FALSE THEN LOOP ;
 
-: INIT-COL 0 C @ ;
-: ROLL-COL TUCK C@ 2DUP > IF ROT 2NIP SWAP ELSE DROP NIP THEN ;
+: INIT-COL TL C @ ;
+: ROLL-COL TUCK C @ 2DUP > IF ROT 2NIP SWAP ELSE DROP NIP THEN ;
 : COL INIT-COL #COL 1 ?DO I ROLL-COL LOOP PIVOT-COLVAL ! PIVOT-COL ! ;
 
 : INIT-ROW -1 PIVOT-ROW ! 0 PIVOT-VAL ! 1 PIVOT-ROWVAL ! ;
-: ROW-VALS ( n -- rv av ) DUP B@ SWAP PIVOT-COL @ TIND A@ ;
+: ROW-VALS ( n -- rv av ) DUP B @ SWAP PIVOT-COL @ SWAP A @ ;
 : FP< ( n1 d1 n2 d2 ) -ROT * -ROT * > ; \ n1/d1 < n2/d2 ? for d1,d2 positive
 : LOWER-RAT? ( r2 a2 ) PIVOT-ROWVAL @ PIVOT-VAL @ FP< ;
 : REPLACE-ROW PIVOT-VAL ! PIVOT-ROWVAL ! PIVOT-ROW ! ;
@@ -170,33 +178,32 @@ CREATE P2-STRAT #COL CELLS ALLOT
 : ROLL-ROW DUP ROW-VALS DUP 0< IF 3DROP ELSE LOWER-RAT THEN ;
 : ROW INIT-ROW #ROW 0 DO I ROLL-ROW LOOP ;
 
-: GO-B-EL DUP DUP B@ PIVOT-VAL @ * SWAP PIVOT-COL @ TIND A@ PIVOT-ROWVAL @ * - D @ / SWAP B! ;
+: GO-B-EL DUP DUP B @ PIVOT-VAL @ * SWAP PIVOT-COL @ SWAP A @ PIVOT-ROWVAL @ * - D @ / SWAP B ! ;
 : GO-B-ROW DUP PIVOT-ROW @ <> IF GO-B-EL ELSE DROP THEN ;
 : GO-B #ROW 0 DO I GO-B-ROW LOOP ;
 
-: GO-C-EL DUP DUP C@ PIVOT-VAL @ * SWAP PIVOT-ROW @ SWAP TIND A@ PIVOT-COLVAL @ * - D @ / SWAP C! ;
+: GO-C-EL DUP DUP C @ PIVOT-VAL @ * SWAP PIVOT-ROW @ A @ PIVOT-COLVAL @ * - D @ / SWAP C ! ;
 : GO-C-COL DUP PIVOT-COL @ <> IF GO-C-EL ELSE DROP THEN ;
 : GO-C #COL 0 DO I GO-C-COL LOOP ;
 
-: A@P* A@ PIVOT-VAL @ * ;
-: RV ( c -- rv ) PIVOT-ROW @ SWAP TIND A@ ;
-: CV ( r -- cv ) PIVOT-COL @      TIND A@ ;
-: NON-ORTHOG-VALUE ( r c -- n ) 2DUP TIND A@P* -ROT RV SWAP CV * - D @ / ;
-: NON-ORTHOG-EL ( r c ) 2DUP NON-ORTHOG-VALUE -ROT TIND A! ;
+: RV ( c -- rv ) PIVOT-ROW @      A @ ;
+: CV ( r -- cv ) PIVOT-COL @ SWAP A @ ;
+: NON-ORTHOG-VALUE ( r c -- n ) 2DUP SWAP A @ PIVOT-VAL @ * -ROT RV SWAP CV * - D @ / ;
+: NON-ORTHOG-EL ( r c ) 2DUP NON-ORTHOG-VALUE -ROT SWAP A ! ;
 : NON-ORTHOG-COL ( r c ) DUP PIVOT-COL @ = IF 2DROP ELSE NON-ORTHOG-EL THEN ;
 : NON-ORTHOG-ROW ( r ) DUP PIVOT-ROW @ <> IF #COL 0 DO DUP I NON-ORTHOG-COL LOOP THEN DROP ;
 : NON-ORTHOG #ROW 0 DO I NON-ORTHOG-ROW LOOP ;
 
 : NEG! ( addr -- ) DUP @ -1 * SWAP ! ;
-: NEG-A ( pcol prow row --) TUCK <> IF SWAP TIND CELLS A + NEG! ELSE 2DROP THEN ; 
-: NEG-C CELLS C + NEG! ;
+: NEG-A ( pcol prow row --) TUCK <> IF A NEG! ELSE 2DROP THEN ; 
+: NEG-C C NEG! ;
 : NEG-COL PIVOT-COL @ DUP PIVOT-ROW @ #ROW 0 DO 2DUP I NEG-A LOOP 2DROP NEG-C ;
 
-: SWAP-SELF D @ PIVOT-ROW @ PIVOT-COL @ TIND A! PIVOT-VAL @ D ! ; \ less ops than using MEM-SWAP
+: SWAP-SELF D @ PIVOT-ROW @ PIVOT-COL @ SWAP A ! PIVOT-VAL @ D ! ; \ less ops than using MEM-SWAP
 
 : MEM-SWAP 2DUP @ SWAP @ ROT ! SWAP ! ;
-: SWAP-P1 PIVOT-ROW @ CELLS P1-FREE + PIVOT-COL @ CELLS P1-BASE + MEM-SWAP ;
-: SWAP-P2 PIVOT-ROW @ CELLS P2-BASE + PIVOT-COL @ CELLS P2-FREE + MEM-SWAP ;
+: SWAP-P1 PIVOT-ROW @ P1-FREE PIVOT-COL @ P1-BASE MEM-SWAP ;
+: SWAP-P2 PIVOT-ROW @ P2-BASE PIVOT-COL @ P2-FREE MEM-SWAP ;
 
 : GO GO-B GO-C NON-ORTHOG NEG-COL SWAP-SELF SWAP-P1 SWAP-P2 ;
 
@@ -206,20 +213,20 @@ CREATE P2-STRAT #COL CELLS ALLOT
 : SADDLE? ROW-MINMAX DUP COL-MAXMIN = ;
 
 \ Strategies from saddle point solutions
-: ISP1 DUP ROWMINS + @ ROT <> IF 0 ELSE 1 THEN SWAP P1-STRAT + ! ;
-: ISP2 DUP COLMAXS + @ ROT <> IF 0 ELSE 1 THEN SWAP P2-STRAT + ! ;
-: SP1 #ROW 0 DO DUP I CELLS ISP1 LOOP DROP ;
-: SP2 #COL 0 DO DUP I CELLS ISP2 LOOP DROP ;
+: ISP1 DUP ROWMINS @ ROT <> IF 0 ELSE 1 THEN SWAP TOP P1-STRAT ! ;
+: ISP2 DUP COLMAXS @ ROT <> IF 0 ELSE 1 THEN SWAP TOP P2-STRAT ! ;
+: SP1 #ROW 0 DO DUP I ISP1 LOOP DROP ;
+: SP2 #COL 0 DO DUP I ISP2 LOOP DROP ;
 : SADDLE ( saddle-value -- ) DUP D ! 1 V ! DUP SP1 SP2 ;
 
 \ Strategies from solved schema
 \ We set V here instead of on each pivot,
 \ since at solution time it's equal to either
 \ player's solution sum
-: ISM1F       P1F@ DUP 0< IF DROP  ELSE 0                SWAP P1S! THEN ;
-: ISM2F       P2F@ DUP 0< IF DROP  ELSE 0                SWAP P2S! THEN ;
-: ISM1B+V DUP P1B@ DUP 0< IF 2DROP ELSE SWAP C@ DUP V +! SWAP P1S! THEN ;
-: ISM2B   DUP P2B@ DUP 0< IF 2DROP ELSE SWAP B@          SWAP P2S! THEN ;
+: ISM1F       P1-FREE @ DUP 0< IF DROP  ELSE 0                 SWAP P1-STRAT ! THEN ;
+: ISM2F       P2-FREE @ DUP 0< IF DROP  ELSE 0                 SWAP P2-STRAT ! THEN ;
+: ISM1B+V DUP P1-BASE @ DUP 0< IF 2DROP ELSE SWAP C @ DUP V +! SWAP P1-STRAT ! THEN ;
+: ISM2B   DUP P2-BASE @ DUP 0< IF 2DROP ELSE SWAP B @          SWAP P2-STRAT ! THEN ;
 : SM1F   #ROW 0 DO I ISM1F   LOOP ;
 : SM1B+V #COL 0 DO I ISM1B+V LOOP ;
 : SM2F   #COL 0 DO I ISM2F   LOOP ;
@@ -234,7 +241,7 @@ CREATE P2-STRAT #COL CELLS ALLOT
 : GCD-ROLL CELLS + @ DUP 0= IF DROP ELSE GCD THEN ;
 : GCD-VEC ( addr len -- n ) OVER @ SWAP 1 ?DO OVER I GCD-ROLL LOOP NIP ;
 
-: .P1 ." P1: " P1-STRAT #ROW GCD-VEC P1-STRAT @ OVER / .. #ROW 1 ?DO ." :" I P1S@ OVER / .. LOOP DROP ;
-: .P2 ." P2: " P2-STRAT #COL GCD-VEC P2-STRAT @ OVER / .. #COL 1 ?DO ." :" I P2S@ OVER / .. LOOP DROP ;
+: .P1 ." P1: " TOP P1-STRAT #ROW GCD-VEC TOP P1-STRAT @ OVER / .. #ROW 1 ?DO ." :" I P1-STRAT @ OVER / .. LOOP DROP ;
+: .P2 ." P2: " TOP P2-STRAT #COL GCD-VEC TOP P2-STRAT @ OVER / .. #COL 1 ?DO ." :" I P2-STRAT @ OVER / .. LOOP DROP ;
 : .VALUE ." Value: " V @ D @ 2DUP GCD TUCK / .. / DUP 1 = IF DROP ELSE ." /" . THEN ;
 : .NASH CR .P1 CR .P2 CR .VALUE ; \ needs to indicate when strategy ratios are giving saddle points
