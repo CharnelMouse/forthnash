@@ -9,10 +9,8 @@ To implement: reading games from file, allowing continuation if multiple equilib
 \ data structures
 
 : AFILL 0 DO DUP , LOOP DROP ;
-: SEQ   0 DO I   , LOOP ;
 : ARRAY     (     len ) CREATE CELLS ALLOT DOES> SWAP CELLS + ;
 : REP-ARRAY ( val len ) CREATE AFILL       DOES> SWAP CELLS + ;
-: SEQ-ARRAY (     len ) CREATE SEQ         DOES> SWAP CELLS + ;
 : TOP 0 ;
 
 : MATRIX ( nrow ncol -- )
@@ -78,36 +76,40 @@ DROP
 TL GAME TL A #ROW #COL * CELLS MOVE
  1    #ROW REP-ARRAY B
 -1    #COL REP-ARRAY C
--1 CONSTANT SLACK
-SLACK #COL REP-ARRAY P1-BASE
-SLACK #ROW REP-ARRAY P2-BASE
-#ROW SEQ-ARRAY P1-FREE
-#COL SEQ-ARRAY P2-FREE
+
+#ROW #COL + ARRAY LABELS \ Negative for P2
+: P1-LABELS #ROW 1+ 1 DO DUP I      SWAP ! CELL+ LOOP ;
+: P2-LABELS #COL 1+ 1 DO DUP I -1 * SWAP ! CELL+ LOOP ;
+TOP LABELS P1-LABELS P2-LABELS DROP
+
 VARIABLE V \ Might not need, used strat values will add to this for solved schema
 CREATE D 1 ,
 
 \ for manual testing
-: .RP DUP 0< IF DROP 1+ SPACES ELSE SWAP .R SPACE THEN ;
+: .RP DUP 0< IF DROP 1+ SPACES ELSE      SWAP .R SPACE THEN ;
+: .RN DUP 0> IF DROP 1+ SPACES ELSE -1 * SWAP .R SPACE THEN ;
 : ?RP @ .RP ;
+: ?RN @ .RN ;
 : .| [CHAR] | EMIT SPACE ;
 
 : .ARRAY   (    addr n )        0 DO    DUP  I CELLS + ?                     LOOP DROP  ;
 : .RARRAY  ( +n addr n )        0 DO    2DUP I CELLS + @ SWAP .R SPACE       LOOP 2DROP ;
 : .RPARRAY ( +n addr n )        0 DO    2DUP I CELLS + ?RP                   LOOP 2DROP ;
+: .RNARRAY ( +n addr n )        0 DO    2DUP I CELLS + ?RN                   LOOP 2DROP ;
 : .MATRIX-ROW ( addr width row -- ) OVER * CELLS ROT + SWAP .ARRAY ;
 : .MATRIX ( addr width height ) 0 DO CR 2DUP I .MATRIX-ROW                   LOOP 2DROP ;
-: .MAIN-ROW ( +n r ) 2DUP 0 SWAP A #COL .RARRAY .| 2DUP B @ SWAP .R SPACE P2-BASE ?RP ;
-: .MAIN-ROWS ( +n )        #ROW 0 DO    DUP  I 2DUP P1-FREE ?RP .MAIN-ROW CR LOOP DROP  ;
+: .MAIN-ROW ( +n r ) 2DUP 0 SWAP A #COL .RARRAY .| 2DUP B @ SWAP .R SPACE LABELS ?RN ;
+: .MAIN-ROWS ( +n )        #ROW 0 DO    DUP  I 2DUP LABELS ?RP .MAIN-ROW CR LOOP DROP  ;
 
 : .GAME TL GAME #COL #ROW .MATRIX ;
 : .ROWMINS TOP ROWMINS #ROW .ARRAY ;
 : .COLMAXS TOP COLMAXS #COL .ARRAY ;
-: .P2-FREES ( +n ) TOP P2-FREE #COL .RPARRAY ;
+: .P2-FREES ( +n ) #ROW LABELS #COL .RNARRAY ;
 : .C-ROW TOP C #COL .RARRAY ;
 : .V V @ SWAP .R ;
 : .-N 0 DO [CHAR] - EMIT LOOP ;
 : .LINE ( +n ) 1+ DUP #COL * .-N [CHAR] + EMIT .-N ;
-: .P1-BASES TOP P1-BASE #COL .RPARRAY ;
+: .P1-BASES #ROW LABELS #COL .RPARRAY ;
 : .D D ? ;
 : .SCHEMA ( +n )
    CR DUP 1+ SPACES DUP .P2-FREES
@@ -202,10 +204,9 @@ VARIABLE PIVOT-VAL
 : SWAP-SELF D @ PIVOT-ROW @ PIVOT-COL @ SWAP A ! PIVOT-VAL @ D ! ; \ less ops than using MEM-SWAP
 
 : MEM-SWAP 2DUP @ SWAP @ ROT ! SWAP ! ;
-: SWAP-P1 PIVOT-ROW @ P1-FREE PIVOT-COL @ P1-BASE MEM-SWAP ;
-: SWAP-P2 PIVOT-ROW @ P2-BASE PIVOT-COL @ P2-FREE MEM-SWAP ;
+: SWAP-LABELS PIVOT-ROW @ LABELS #ROW PIVOT-COL @ + LABELS MEM-SWAP ;
 
-: GO GO-B GO-C NON-ORTHOG NEG-COL SWAP-SELF SWAP-P1 SWAP-P2 ;
+: GO GO-B GO-C NON-ORTHOG NEG-COL SWAP-SELF SWAP-LABELS ;
 
 : PIVOT COL ROW GO ;
 : SIMPLEX BEGIN UNSOLVED? WHILE PIVOT REPEAT ;
@@ -223,17 +224,11 @@ VARIABLE PIVOT-VAL
 \ We set V here instead of on each pivot,
 \ since at solution time it's equal to either
 \ player's solution sum
-: ISM1F       P1-FREE @ DUP 0< IF DROP  ELSE 0                 SWAP P1-STRAT ! THEN ;
-: ISM2F       P2-FREE @ DUP 0< IF DROP  ELSE 0                 SWAP P2-STRAT ! THEN ;
-: ISM1B+V DUP P1-BASE @ DUP 0< IF 2DROP ELSE SWAP C @ DUP V +! SWAP P1-STRAT ! THEN ;
-: ISM2B   DUP P2-BASE @ DUP 0< IF 2DROP ELSE SWAP B @          SWAP P2-STRAT ! THEN ;
-: SM1F   #ROW 0 DO I ISM1F   LOOP ;
-: SM1B+V #COL 0 DO I ISM1B+V LOOP ;
-: SM2F   #COL 0 DO I ISM2F   LOOP ;
-: SM2B   #ROW 0 DO I ISM2B   LOOP ;
-: SM1+V SM1F SM1B+V ;
-: SM2   SM2F SM2B ;
-: SM 0 V ! SM1+V SM2 ;
+: ISM2B1F   DUP        LABELS @ DUP 0< IF -1 * 1-   SWAP B @ SWAP P2-STRAT !      ELSE 1- 0                 SWAP P1-STRAT ! DROP THEN ;
+: ISM2F1B+V DUP #ROW + LABELS @ DUP 0< IF -1 * 1- 0          SWAP P2-STRAT ! DROP ELSE 1- SWAP C @ DUP V +! SWAP P1-STRAT !      THEN ;
+: SM2B1F   #ROW 0 DO I ISM2B1F   LOOP ;
+: SM2F1B+V #COL 0 DO I ISM2F1B+V LOOP ;
+: SM 0 V ! SM2B1F SM2F1B+V ;
 
 : NASH FIND-EXTREMES SADDLE? IF SADDLE ." Saddle" ELSE DROP SIMPLEX SM ." Mixed" THEN ;
 
