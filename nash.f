@@ -6,6 +6,11 @@ Currently no consideration of integer over/underflow.
 To implement: reading games from file, allowing continuation if multiple equilibria.
 }
 
+\ starting constants, later will be read from file
+
+4 CONSTANT #ROW
+4 CONSTANT #COL
+
 \ data structures
 
 : AFILL 0 DO DUP , LOOP DROP ;
@@ -13,9 +18,9 @@ To implement: reading games from file, allowing continuation if multiple equilib
 : REP-ARRAY ( val len ) CREATE AFILL       DOES> SWAP CELLS + ;
 : TOP 0 ;
 
-: MATRIX ( nrow ncol -- )
-  CREATE DUP , * CELLS ALLOT
-  DOES> ( col row -- addr ) TUCK @ * 1+ ROT + CELLS + ;
+: MATRIX ( -- ) \ no dimension arguments, since we always use #ROW by #COL
+  CREATE #COL DUP , #ROW * CELLS ALLOT
+  DOES> ( col row -- addr ) SWAP #COL * ROT + CELLS + ;
 : TL 0 0 ;
 : & ( addr n -- addr ) OVER ! CELL+ ;
 
@@ -23,31 +28,29 @@ To implement: reading games from file, allowing continuation if multiple equilib
 \ need to add way to use own payoff matrix instead of a hard-coded one
 
 \ 2x2 games
-\ 2 CONSTANT #ROW 2 CONSTANT #COL
 \ saddle
-\ #ROW #COL MATRIX GAME
+\ MATRIX GAME
 \ TL GAME
 \ 1 & 2 &
 \ 3 & 4 &
 \ DROP
 \ no saddle
-\ #ROW #COL MATRIX GAME
+\ MATRIX GAME
 \ TL GAME
 \ 3 & 6 &
 \ 5 & 4 &
 \ DROP
 
 \ 3x3 game
-\ 3 CONSTANT #ROW 3 CONSTANT #COL
 \ saddle
-\ #ROW #COL MATRIX GAME
+\ MATRIX GAME
 \ TL GAME
 \ 1 & 2 & 3 &
 \ 4 & 5 & 6 &
 \ 7 & 8 & 9 &
 \ DROP
 \ no saddle
-\ #ROW #COL MATRIX GAME
+\ MATRIX GAME
 \ TL GAME
 \ 1 & 2 & 7 &
 \ 6 & 5 & 4 &
@@ -55,8 +58,7 @@ To implement: reading games from file, allowing continuation if multiple equilib
 \ DROP
 
 \ 4x4 game
-4 CONSTANT #ROW 4 CONSTANT #COL
-#ROW #COL MATRIX GAME
+MATRIX GAME
 TL GAME
 36 & 12 & 29 & 17 &
  0 & 24 & 29 & 17 &
@@ -72,7 +74,7 @@ DROP
 \ Williams simplex variables
 \ later will need to ensure elements are positive integers first
 
-#ROW #COL MATRIX A
+MATRIX A
 TL GAME TL A #ROW #COL * CELLS MOVE
  1    #ROW REP-ARRAY B
 -1    #COL REP-ARRAY C
@@ -96,12 +98,12 @@ CREATE D 1 ,
 : .RARRAY  ( +n addr n )        0 DO    2DUP I CELLS + @ SWAP .R SPACE       LOOP 2DROP ;
 : .RPARRAY ( +n addr n )        0 DO    2DUP I CELLS + ?RP                   LOOP 2DROP ;
 : .RNARRAY ( +n addr n )        0 DO    2DUP I CELLS + ?RN                   LOOP 2DROP ;
-: .MATRIX-ROW ( addr width row -- ) OVER * CELLS ROT + SWAP .ARRAY ;
-: .MATRIX ( addr width height ) 0 DO CR 2DUP I .MATRIX-ROW                   LOOP 2DROP ;
+: .MATRIX-ROW ( addr row -- ) #COL * CELLS + #COL .ARRAY ;
+: .MATRIX ( addr )  #ROW 0 DO CR DUP I .MATRIX-ROW LOOP DROP ;
 : .MAIN-ROW ( +n r ) 2DUP 0 SWAP A #COL .RARRAY .| 2DUP B @ SWAP .R SPACE LABELS ?RN ;
 : .MAIN-ROWS ( +n )        #ROW 0 DO    DUP  I 2DUP LABELS ?RP .MAIN-ROW CR LOOP DROP  ;
 
-: .GAME TL GAME #COL #ROW .MATRIX ;
+: .GAME TL GAME .MATRIX ;
 : .ROWMINS TOP ROWMINS #ROW .ARRAY ;
 : .COLMAXS TOP COLMAXS #COL .ARRAY ;
 : .P2-FREES ( +n ) #ROW LABELS #COL .RNARRAY ;
