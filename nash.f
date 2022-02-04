@@ -17,7 +17,7 @@ To implement: reading games from file, allowing continuation if multiple equilib
   CREATE DUP , * CELLS ALLOT
   DOES> ( col row -- addr ) TUCK @ * 1+ ROT + CELLS + ;
 : TL 0 0 ;
-: & ( addr n -- addr ) OVER ! CELL + ;
+: & ( addr n -- addr ) OVER ! CELL+ ;
 
 \ example games
 \ need to add way to use own payoff matrix instead of a hard-coded one
@@ -214,23 +214,26 @@ VARIABLE PIVOT-VAL
 : SADDLE? ROW-MINMAX DUP COL-MAXMIN = ;
 
 \ Strategies from saddle point solutions
-: ISP1 DUP ROWMINS @ ROT <> IF 0 ELSE 1 THEN SWAP P1-STRAT ! ;
-: ISP2 DUP COLMAXS @ ROT <> IF 0 ELSE 1 THEN SWAP P2-STRAT ! ;
-: SP1 #ROW 0 DO DUP I ISP1 LOOP DROP ;
-: SP2 #COL 0 DO DUP I ISP2 LOOP DROP ;
+: SP1 #ROW 0 DO I 2DUP ROWMINS @ = 1 AND SWAP P1-STRAT ! LOOP DROP ;
+: SP2 #COL 0 DO I 2DUP COLMAXS @ = 1 AND SWAP P2-STRAT ! LOOP DROP ;
 : SADDLE ( saddle-value -- ) DUP D ! 1 V ! DUP SP1 SP2 ;
 
 \ Strategies from solved schema
 \ We set V here instead of on each pivot,
 \ since at solution time it's equal to either
 \ player's solution sum
-: ISM2B1F   DUP        LABELS @ DUP 0< IF -1 * 1-   SWAP B @ SWAP P2-STRAT !      ELSE 1- 0                 SWAP P1-STRAT ! DROP THEN ;
-: ISM2F1B+V DUP #ROW + LABELS @ DUP 0< IF -1 * 1- 0          SWAP P2-STRAT ! DROP ELSE 1- SWAP C @ DUP V +! SWAP P1-STRAT !      THEN ;
-: SM2B1F   #ROW 0 DO I ISM2B1F   LOOP ;
-: SM2F1B+V #COL 0 DO I ISM2F1B+V LOOP ;
-: SM 0 V ! SM2B1F SM2F1B+V ;
+: P1 1-     P1-STRAT ;
+: P2 -1 XOR P2-STRAT ;
+: TO-ZERO NIP 0 SWAP ;
+: ROW-LABEL DUP 0< IF P2         ELSE P1 TO-ZERO THEN ! ;
+: COL-LABEL DUP 0< IF P2 TO-ZERO ELSE P1         THEN ! ;
+: ROW-LABELS #ROW 0 DO I DUP B @ SWAP        LABELS @ ROW-LABEL LOOP ;
+: COL-LABELS #COL 0 DO I DUP C @ SWAP #ROW + LABELS @ COL-LABEL LOOP ;
+: MIXED-STRATS ROW-LABELS COL-LABELS ;
+: MIXED-VALUE 0 V ! #ROW 0 DO I P1-STRAT @ V +! LOOP ;
+: MIXED SIMPLEX MIXED-STRATS MIXED-VALUE ;
 
-: NASH FIND-EXTREMES SADDLE? IF SADDLE ." Saddle" ELSE DROP SIMPLEX SM ." Mixed" THEN ;
+: NASH FIND-EXTREMES SADDLE? IF SADDLE ." Saddle" ELSE DROP MIXED ." Mixed" THEN ;
 
 : GCD 2DUP < IF SWAP THEN DUP 0= IF DROP ELSE BEGIN TUCK MOD DUP 0= UNTIL DROP THEN ;
 : GCD-ROLL CELLS + @ DUP 0= IF DROP ELSE GCD THEN ;
