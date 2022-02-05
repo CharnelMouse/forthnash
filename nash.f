@@ -94,14 +94,14 @@ CREATE D 1 ,
 : ?RN @ .RN ;
 : .| [CHAR] | EMIT SPACE ;
 
-: .ARRAY   (    addr n )        0 DO    DUP  I CELLS + ?                     LOOP DROP  ;
-: .RARRAY  ( +n addr n )        0 DO    2DUP I CELLS + @ SWAP .R SPACE       LOOP 2DROP ;
-: .RPARRAY ( +n addr n )        0 DO    2DUP I CELLS + ?RP                   LOOP 2DROP ;
-: .RNARRAY ( +n addr n )        0 DO    2DUP I CELLS + ?RN                   LOOP 2DROP ;
+: .ARRAY   (    addr n ) 0 DO    DUP  I CELLS + ?               LOOP DROP  ;
+: .RARRAY  ( +n addr n ) 0 DO    2DUP I CELLS + @ SWAP .R SPACE LOOP 2DROP ;
+: .RPARRAY ( +n addr n ) 0 DO    2DUP I CELLS + ?RP             LOOP 2DROP ;
+: .RNARRAY ( +n addr n ) 0 DO    2DUP I CELLS + ?RN             LOOP 2DROP ;
 : .MATRIX-ROW ( addr row -- ) #COL * CELLS + #COL .ARRAY ;
 : .MATRIX ( addr )  #ROW 0 DO CR DUP I .MATRIX-ROW LOOP DROP ;
 : .MAIN-ROW ( +n r ) 2DUP 0 SWAP A #COL .RARRAY .| 2DUP B @ SWAP .R SPACE LABELS ?RN ;
-: .MAIN-ROWS ( +n )        #ROW 0 DO    DUP  I 2DUP LABELS ?RP .MAIN-ROW CR LOOP DROP  ;
+: .MAIN-ROWS ( +n ) #ROW 0 DO    DUP I 2DUP LABELS ?RP .MAIN-ROW CR LOOP DROP  ;
 
 : .GAME TL GAME .MATRIX ;
 : .ROWMINS TOP ROWMINS #ROW .ARRAY ;
