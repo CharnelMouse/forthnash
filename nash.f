@@ -137,13 +137,6 @@ CREATE D 1 ,
 : OTHER-ROWS #ROW 1 ?DO I NONTOP-ROW LOOP ;
 : FIND-EXTREMES TOP-ROW OTHER-ROWS ;
 
-\ printing mixed strategies (2x2 matrices only)
-: .. DUP 0< (D.) TYPE ; \ like ., but without the ending space
-: ROW-ADIFF DUP 0  GAME @ SWAP 1 GAME @ - ABS ;
-: COL-ADIFF 0 OVER GAME @ 1 ROT  GAME @ - ABS ;
-: ..ROW-RATIO 1 ROW-ADIFF .. ." :" 0 ROW-ADIFF .. ;
-: ..COL-RATIO 1 COL-ADIFF .. ." :" 0 COL-ADIFF .. ;
-
 \ these could be stored at end of CALCULATE-EXTREMES instead,
 \ if I find another place to use them
 : ROW-MINMAX TOP ROWMINS @ #ROW 1 ?DO I ROWMINS @ MAX LOOP ;
@@ -157,12 +150,6 @@ VARIABLE PIVOT-ROWVAL
 VARIABLE PIVOT-VAL
 #ROW ARRAY P1-STRAT
 #COL ARRAY P2-STRAT
-
-: .PC  PIVOT-COL    ? ;
-: .PCV PIVOT-COLVAL ? ;
-: .PR  PIVOT-ROW    ? ;
-: .PRV PIVOT-ROWVAL ? ;
-: .PV  PIVOT-VAL    ? ;
 
 \ Simplex algorithm
 \ Chooses col based on smallest value, rather than checking -rc/p values
@@ -240,6 +227,7 @@ VARIABLE PIVOT-VAL
 : GCD-ROLL CELLS + @ DUP 0= IF DROP ELSE GCD THEN ;
 : GCD-VEC ( addr len -- n ) OVER @ SWAP 1 ?DO OVER I GCD-ROLL LOOP NIP ;
 
+: .. DUP 0< (D.) TYPE ; \ like ., but without the ending space
 : .P1 ." P1: " TOP P1-STRAT #ROW GCD-VEC TOP P1-STRAT @ OVER / .. #ROW 1 ?DO ." :" I P1-STRAT @ OVER / .. LOOP DROP ;
 : .P2 ." P2: " TOP P2-STRAT #COL GCD-VEC TOP P2-STRAT @ OVER / .. #COL 1 ?DO ." :" I P2-STRAT @ OVER / .. LOOP DROP ;
 : .VALUE ." Value: " V @ D @ 2DUP GCD TUCK / .. / DUP 1 = IF DROP ELSE ." /" . THEN ;
